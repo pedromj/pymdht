@@ -20,6 +20,7 @@ import ptime as time
 import datetime
 import os
 import cPickle
+import random
 
 import logging, logging_conf
 
@@ -44,6 +45,9 @@ STATE_FILENAME = 'pymdht.state'
 #TIMEOUT_DELAY = 2
 
 NUM_NODES = 8
+
+
+HOTSPOT_THRESHOLD = 200 # threshold to stop replying with token
 
 
 class Controller:
@@ -358,7 +362,6 @@ class Controller:
             return self.msg_f.outgoing_find_node_response(
                 msg.src_node, rnodes)
         elif msg.query == message.GET_PEERS:
-            token = self._token_m.get()
             log_distance = msg.info_hash.log_distance(self._my_id)
             rnodes = self._routing_m.get_closest_rnodes(log_distance,
                                                         NUM_NODES, False)
@@ -367,6 +370,12 @@ class Controller:
             peers = self._tracker.get(msg.info_hash)
             if peers:
                 logger.debug('RESPONDING with PEERS:\n%r' % peers)
+            if len(peers) > HOTSPOT_THRESHOLD and random.choice((0, 1, 1)):
+                # no token (1/3 of the cases when the threshold is passed)
+                logger.info('NO TOKEN')
+                token = None
+            else:
+                token = self._token_m.get()
             return self.msg_f.outgoing_get_peers_response(
                 msg.src_node, token, nodes=rnodes, peers=peers)
         elif msg.query == message.ANNOUNCE_PEER:
