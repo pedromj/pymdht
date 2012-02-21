@@ -114,7 +114,7 @@ def main(options, args):
         ui.cli.command_user_interface(dht)
         
 if __name__ == '__main__':
-    default_path = os.path.join(os.path.expanduser('~'), '.pymdht')
+    default_path = '.'#os.path.join(os.path.expanduser('~'), '.pymdht')
     parser = OptionParser()
     parser.add_option("-a", "--address", dest="ip",
                       metavar='IP', default='127.0.0.1',
