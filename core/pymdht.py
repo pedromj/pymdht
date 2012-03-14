@@ -86,8 +86,8 @@ class Pymdht:
         callback needs to be ready to get peers BEFORE calling this fuction.
         
         """
-        use_cache = True
-        print 'use_cache ON, only for debugging'
+        if use_cache:
+            print 'use_cache ON, only for debugging'
         self.reactor.call_asap(self.controller.get_peers,
                                lookup_id, info_hash,
                                callback_f, bt_port,
