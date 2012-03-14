@@ -330,10 +330,7 @@ class RoutingManager(object):
         return
         
     def on_error_received(self, node_addr):
-        if self.bootstrapper.is_bootstrap_node(node_):
-            return
-
-        return
+        pass
     
     def on_timeout(self, node_):
         if self.bootstrapper.is_bootstrap_node(node_):

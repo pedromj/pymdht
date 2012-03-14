@@ -222,8 +222,8 @@ class GetPeersLookup(object):
         return (queries_to_send, self._num_parallel_queries,
                 lookup_done)
     
-    def on_error_received(self, error_msg, node_addr):
-        logger.debug('Got error from node addr: %r' % node_addr)
+    def on_error_received(self, error_msg):
+        logger.debug('Got error: %s' % error_msg)
         self._num_parallel_queries -= 1
         self.num_errors += 1
 
