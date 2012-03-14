@@ -163,6 +163,9 @@ class Controller:
                                                next_lookup_attempt_ts)
         return queries_to_send
     
+    def get_num_peers (self):
+        return self._routing_m.get_num_peers()
+
     def print_routing_table_stats(self):
         self._routing_m.print_stats()
 

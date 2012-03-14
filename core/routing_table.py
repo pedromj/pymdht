@@ -184,6 +184,9 @@ class RoutingTable(object):
                 rnodes.extend(sbucket.main.rnodes)
         return rnodes
 
+    def get_num_peers (self):
+        return self.num_rnodes
+
     def print_stats(self):
         num_nodes = 0
         for i, sbucket in enumerate(self.sbuckets):

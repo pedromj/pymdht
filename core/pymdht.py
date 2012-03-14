@@ -93,6 +93,9 @@ class Pymdht:
                                callback_f, bt_port,
                                use_cache)
 
+    def get_num_peers (self):
+        return self.controller.get_num_peers()
+
     def print_routing_table_stats(self):
         self.controller.print_routing_table_stats()
 

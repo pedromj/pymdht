@@ -376,6 +376,9 @@ class RoutingManager(object):
     def get_main_rnodes(self):
         return self.table.get_main_rnodes()
 
+    def get_num_peers (self):
+        return self.table.get_num_peers()
+
     def print_stats(self):
         self.table.print_stats()
 
