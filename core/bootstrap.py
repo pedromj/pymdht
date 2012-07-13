@@ -17,6 +17,7 @@ overloading them (use is_bootstrap_node() before adding nodes to routing table!
 """
 
 import os
+import sys
 import random
 import logging
 
@@ -78,6 +79,12 @@ class OverlayBootstrapper(object):
 #            print '>> using bootstrap nodes', len(nodes)
         return queries_to_send, maintenance_lookup, delay
 
+    def bootstrap_done(self):
+        #clean up stuff that will never be used
+        self.saved_bootstrap_nodes = []
+        self.main_bootstrap_nodes = []
+        self.backup_bootstrap_nodes = []
+    
     def is_bootstrap_node(self, node_):
         return node_.ip in self.bootstrap_ips
 
@@ -107,8 +114,21 @@ def _sanitize_bootstrap_node(line):
 
 def _get_bootstrap_nodes():
     data_path = os.path.dirname(message.__file__)
+    mainfile = os.path.join(data_path, BOOTSTRAP_MAIN_FILENAME)
+    backfile = os.path.join(data_path, BOOTSTRAP_BACKUP_FILENAME)
+    
+    # Arno, 2012-05-25: py2exe support
+    if hasattr(sys, "frozen"):
+        print >>sys.stderr,"pymdht: bootstrap: Frozen mode"
+        installdir = os.path.dirname(unicode(sys.executable,sys.getfilesystemencoding()))
+        if sys.platform == "darwin":
+            installdir = installdir.replace("MacOS","Resources")
+        mainfile = os.path.join(installdir,"Tribler","Core","DecentralizedTracking","pymdht","core","bootstrap.main")
+        backfile = os.path.join(installdir,"Tribler","Core","DecentralizedTracking","pymdht","core","bootstrap.backup")
+    print >>sys.stderr,"pymdht: bootstrap: mainfile",mainfile 
+    print >>sys.stderr,"pymdht: bootstrap: backfile",backfile
     try:
-        f = open(os.path.join(data_path, BOOTSTRAP_MAIN_FILENAME))
+        f = open(mainfile)
         main = [_sanitize_bootstrap_node(n) for n in f]
     except (Exception):
         logger.exception('main bootstrap file corrupted!')
@@ -116,7 +136,7 @@ def _get_bootstrap_nodes():
         raise
 #    print 'main: %d nodes' % len(main)
     try:
-        f = open(os.path.join(data_path, BOOTSTRAP_BACKUP_FILENAME))
+        f = open(backfile)
         backup = [_sanitize_bootstrap_node(n) for n in f]
     except (Exception):
         logger.exception('backup bootstrap file corrupted!')

@@ -43,7 +43,7 @@ STATE_FILENAME = 'pymdht.state'
 #TIMEOUT_DELAY = 2
 
 CACHE_VALID_PERIOD = 5 * 60 # 5 minutes
-
+PENDING_LOOKUP_TIMEOUT = 30
 
 class Controller:
 
@@ -107,7 +107,7 @@ class Controller:
         logger.debug('get_peers %d %r' % (bt_port, info_hash))
         if use_cache:
             peers = self._get_cached_peers(info_hash)
-            if peers and callable(callback_f):
+            if peers and callback_f and callable(callback_f):
                 callback_f(lookup_id, peers, None)
                 callback_f(lookup_id, None, None)
                 return datagrams_to_send
@@ -137,6 +137,14 @@ class Controller:
 
     def _try_do_lookup(self):
         queries_to_send = []
+        current_time = time.time()
+        while self._pending_lookups:
+            pending_lookup = self._pending_lookups[0]
+            # Drop all pending lookups older than PENDING_LOOKUP_TIMEOUT
+            if time.time() > pending_lookup.start_ts + PENDING_LOOKUP_TIMEOUT:
+                del self._pending_lookups[0]
+            else:
+                break
         if self._pending_lookups:
             lookup_obj = self._pending_lookups[0]
         else:
@@ -153,7 +161,7 @@ class Controller:
             callback_f = lookup_obj.callback_f
             if peers:
                 self._add_cache_peers(lookup_obj.info_hash, peers)
-                if callable(callback_f):
+                if callback_f and callable(callback_f):
                     callback_f(lookup_obj.lookup_id, peers, None)
             # do the lookup
             queries_to_send = lookup_obj.start(bootstrap_rnodes)
@@ -298,23 +306,22 @@ class Controller:
                 callback_f = lookup_obj.callback_f
                 if peers:
                     self._add_cache_peers(lookup_obj.info_hash, peers)
-                    if callable(callback_f):
+                    if callback_f and callable(callback_f):
                         callback_f(lookup_id, peers, msg.src_node)
-                if lookup_done:
-                    if callable(callback_f):
-                        callback_f(lookup_id, None, msg.src_node)
-                    queries_to_send = self._announce(
-                        related_query.lookup_obj)
-                    datagrams = self._register_queries(
-                        queries_to_send)
-                    datagrams_to_send.extend(datagrams)
-                        
                 # Size estimation
                 if size_estimation and lookup_done:
                     line = '%d %d\n' % (
                         related_query.lookup_obj.get_number_nodes_within_region())
                     self._size_estimation_file.write(line)
                     self._size_estimation_file.flush()
+                if lookup_done:
+                    if callback_f and callable(callback_f):
+                        callback_f(lookup_id, None, msg.src_node)
+                    queries_to_send = self._announce(
+                        related_query.lookup_obj)
+                    datagrams = self._register_queries(
+                        queries_to_send)
+                    datagrams_to_send.extend(datagrams)
                     
             # maintenance related tasks
             maintenance_queries_to_send = \
@@ -335,10 +342,15 @@ class Controller:
                 (lookup_queries_to_send,
                  num_parallel_queries,
                  lookup_done
-                 ) = related_query.lookup_obj.on_error_received(msg)
+                 ) = related_query.lookup_obj.on_error_received(msg, addr)
                 datagrams = self._register_queries(lookup_queries_to_send)
                 datagrams_to_send.extend(datagrams)
 
+                callback_f = related_query.lookup_obj.callback_f
+                if callback_f and callable(callback_f):
+                    lookup_id = related_query.lookup_obj.lookup_id
+                    if lookup_done:
+                        callback_f(lookup_id, None, msg.src_node)
                 if lookup_done:
                     # Size estimation
                     if size_estimation:
@@ -346,19 +358,10 @@ class Controller:
                             related_query.lookup_obj.get_number_nodes_within_region())
                         self._size_estimation_file.write(line)
                         self._size_estimation_file.flush()
-
-
-
-
                     
                     datagrams = self._announce(related_query.lookup_obj)
                     datagrams_to_send.extend(datagrams)
-                callback_f = related_query.lookup_obj.callback_f
-                if callback_f and callable(callback_f):
-                    lookup_id = related_query.lookup_obj.lookup_id
-                    if lookup_done:
-                        callback_f(lookup_id, None, msg.src_node)
-			    # maintenance related tasks
+            # maintenance related tasks
             maintenance_queries_to_send = \
                 self._routing_m.on_error_received(addr)
 
@@ -399,12 +402,11 @@ class Controller:
                     self._size_estimation_file.write(line)
                     self._size_estimation_file.flush()
 
-
+                lookup_id = related_query.lookup_obj.lookup_id
                 if callback_f and callable(callback_f):
-                    queries_to_send.extend(self._announce(
-                            related_query.lookup_obj))
-                    lookup_id = related_query.lookup_obj.lookup_id
                     related_query.lookup_obj.callback_f(lookup_id, None, None)
+                queries_to_send.extend(self._announce(
+                        related_query.lookup_obj))
         maintenance_queries_to_send = self._routing_m.on_timeout(
             related_query.dst_node)
         if maintenance_queries_to_send:
