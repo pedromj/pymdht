@@ -4,7 +4,8 @@
 
 import ptime as time
 
-from nose.tools import ok_, eq_, raises, assert_raises
+import unittest
+
 import test_const as tc
 
 import logging, logging_conf
@@ -27,11 +28,8 @@ addr1 = ('127.0.0.1', 1111)
 addr2 = ('127.0.0.1', 2222)
 
 
-class TestNode:
+class TestNode(unittest.TestCase):
 
-    def setup(self):
-        pass
-    
     def test_node(self):
         node1 = Node(addr1, id1, 'version')
         node2 = Node(addr2, id2)
@@ -40,13 +38,13 @@ class TestNode:
         node1port = Node(addr2, id1)
         node1id = Node(addr1, id2)
 
-        eq_(str(node1), '<node: %26r %r (version)>' % (addr1, id1))
+        self.assertEqual(str(node1), '<node: %26r %r (version)>' % (addr1, id1))
         #<node: ('127.0.0.1', 1111) 0x1313131313131313131313131313131313131313>
 
-        eq_(node1.id, id1)
+        self.assertEqual(node1.id, id1)
         assert node1.id != id2
         assert node1.addr == addr1
-        eq_(node1.ip, addr1[0])
+        self.assertEqual(node1.ip, addr1[0])
         assert node1.addr != addr2
         assert node1 == node1
 
@@ -60,78 +58,82 @@ class TestNode:
         assert node1 != node1id
 
     def test_compact_addr(self):
-        eq_(tc.CLIENT_NODE.compact_addr,
+        self.assertEqual(tc.CLIENT_NODE.compact_addr,
             utils.compact_addr(tc.CLIENT_ADDR))
 
     def test_distance(self):
-        eq_(tc.CLIENT_NODE.distance(tc.SERVER_NODE),
+        self.assertEqual(tc.CLIENT_NODE.distance(tc.SERVER_NODE),
             tc.CLIENT_ID.distance(tc.SERVER_ID))
 
     def test_compact(self):
-        eq_(tc.CLIENT_NODE.compact(),
+        self.assertEqual(tc.CLIENT_NODE.compact(),
             tc.CLIENT_ID.bin_id + utils.compact_addr(tc.CLIENT_ADDR))
         
     def test_get_rnode(self):
-        eq_(tc.CLIENT_NODE.get_rnode(1),
+        self.assertEqual(tc.CLIENT_NODE.get_rnode(1),
             RoutingNode(tc.CLIENT_NODE, 1))
         
-    @raises(AttributeError)
     def test_node_exceptions(self):
-        Node(addr1, id1).id = id2
+        with self.assertRaises(AttributeError):
+            Node(addr1, id1).id = id2
 
     def test_node_without_id(self):
         n1 = Node(tc.CLIENT_ADDR)
         n2 = Node(tc.CLIENT_ADDR)
-        eq_(n1, n2)
+        self.assertEqual(n1, n2)
         n1.id = tc.CLIENT_ID
-        ok_(n1 != n2)
+        self.assertTrue(n1 != n2)
         n2.id = tc.CLIENT_ID
-        eq_(n1, n2)
+        self.assertEqual(n1, n2)
 
-class TestRoutingNode:
+class TestRoutingNode(unittest.TestCase):
 
-    def setup(self):
+    def setUp(self):
         self.rnode1 = RoutingNode(Node(addr1, id1), 1)
         self.rnode2 = RoutingNode(Node(addr2, id2), 1)
 
     def test_timeouts_in_a_row(self):
         rnode = RoutingNode(tc.NODES[0], 1)
-        eq_(rnode.timeouts_in_a_row(), 0)
-        eq_(rnode.timeouts_in_a_row(True), 0)
-        eq_(rnode.timeouts_in_a_row(False), 0)
+        self.assertEqual(rnode.timeouts_in_a_row(), 0)
+        self.assertEqual(rnode.timeouts_in_a_row(True), 0)
+        self.assertEqual(rnode.timeouts_in_a_row(False), 0)
         # got query
         rnode.add_event(time.time(), node.QUERY)
-        eq_(rnode.timeouts_in_a_row(), 0)
-        eq_(rnode.timeouts_in_a_row(True), 0)
-        eq_(rnode.timeouts_in_a_row(False), 0)
+        self.assertEqual(rnode.timeouts_in_a_row(), 0)
+        self.assertEqual(rnode.timeouts_in_a_row(True), 0)
+        self.assertEqual(rnode.timeouts_in_a_row(False), 0)
         # got timeout
         rnode.add_event(time.time(), node.TIMEOUT)
-        eq_(rnode.timeouts_in_a_row(), 1)
-        eq_(rnode.timeouts_in_a_row(True), 1)
-        eq_(rnode.timeouts_in_a_row(False), 1)
+        self.assertEqual(rnode.timeouts_in_a_row(), 1)
+        self.assertEqual(rnode.timeouts_in_a_row(True), 1)
+        self.assertEqual(rnode.timeouts_in_a_row(False), 1)
         # got query
         rnode.add_event(time.time(), node.QUERY)
-        eq_(rnode.timeouts_in_a_row(), 0)
-        eq_(rnode.timeouts_in_a_row(True), 0)
-        eq_(rnode.timeouts_in_a_row(False), 1)
+        self.assertEqual(rnode.timeouts_in_a_row(), 0)
+        self.assertEqual(rnode.timeouts_in_a_row(True), 0)
+        self.assertEqual(rnode.timeouts_in_a_row(False), 1)
         # got timeout
         rnode.add_event(time.time(), node.TIMEOUT)
-        eq_(rnode.timeouts_in_a_row(), 1)
-        eq_(rnode.timeouts_in_a_row(True), 1)
-        eq_(rnode.timeouts_in_a_row(False), 2)
+        self.assertEqual(rnode.timeouts_in_a_row(), 1)
+        self.assertEqual(rnode.timeouts_in_a_row(True), 1)
+        self.assertEqual(rnode.timeouts_in_a_row(False), 2)
         # got response
         rnode.add_event(time.time(), node.RESPONSE)
-        eq_(rnode.timeouts_in_a_row(), 0)
-        eq_(rnode.timeouts_in_a_row(True), 0)
-        eq_(rnode.timeouts_in_a_row(False), 0)
+        self.assertEqual(rnode.timeouts_in_a_row(), 0)
+        self.assertEqual(rnode.timeouts_in_a_row(True), 0)
+        self.assertEqual(rnode.timeouts_in_a_row(False), 0)
         
     def test_repr(self):
-        _ = repr(RoutingNode(tc.CLIENT_NODE, 1))
+        rnode = repr(RoutingNode(tc.CLIENT_NODE, 1))
 
     def test_get_node_and_get_rnode(self):
         rn1 = self.rnode1.get_rnode()
-        eq_(rn1, self.rnode1)
+        self.assertEqual(rn1, self.rnode1)
         n1 = rn1.get_node()
-        eq_(n1, rn1)
+        self.assertEqual(n1, rn1)
         rn1_duplicate = n1.get_rnode(1)
-        eq_(rn1_duplicate, rn1)
+        self.assertEqual(rn1_duplicate, rn1)
+
+
+if __name__ == '__main__':
+    unittest.main()

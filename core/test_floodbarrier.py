@@ -2,6 +2,7 @@
 # Released under GNU LGPL 2.1
 # See LICENSE.txt for more information
 
+import unittest
 import logging, logging_conf
 
 import ptime as time
@@ -14,9 +15,9 @@ logging_conf.testing_setup(__name__)
 logger = logging.getLogger('dht')
 
 
-class TestFloodBarrier:
+class TestFloodBarrier(unittest.TestCase):
 
-    def setup(self):
+    def setUp(self):
         time.mock_mode()
 
     def test(self):
@@ -24,7 +25,7 @@ class TestFloodBarrier:
                           max_packets_per_period=4,
                           blocking_period=1)
         for ip in ts.IPS:
-            for _ in xrange(4):
+            for i in xrange(4):
                 assert not fb.ip_blocked(ip)
         # Every ip is on the limit
         assert fb.ip_blocked(ts.IPS[0])
@@ -50,14 +51,17 @@ class TestFloodBarrier:
         assert not fb.ip_blocked(ts.IPS[3])
         time.sleep(.4)
         for ip in ts.IPS:
-            for _ in xrange(4):
+            for i in xrange(4):
                 assert not fb.ip_blocked(ip)
         time.sleep(.4)
         for ip in ts.IPS:
-            for _ in xrange(4):
+            for i in xrange(4):
                 assert not fb.ip_blocked(ip)
 
         
-    def teardown(self):
+    def tearDown(self):
         time.normal_mode()
 
+
+if __name__ == '__main__':
+    unittest.main()

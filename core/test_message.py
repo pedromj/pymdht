@@ -2,7 +2,7 @@
 # Released under GNU LGPL 2.1
 # See LICENSE.txt for more information
 
-from nose.tools import ok_, eq_, assert_raises
+import unittest
 
 import node
 import logging, logging_conf
@@ -30,15 +30,15 @@ servers_msg_f = m.MsgFactory(VERSION_LABEL, tc.SERVER_ID, None)
 def _test_matching_tid():
     # TODO
     # It _only_ matches the first byte)
-    ok_(m.matching_tid('aaa', 'aaa'))
-    ok_(m.matching_tid('axa', 'a1a'))
-    ok_(m.matching_tid('aQWEREWTWETWTWETWETEWT', 'a'))
-    ok_(not m.matching_tid('a', 'b'))
-    ok_(not m.matching_tid('aZZ', 'bZZ'))
+    self.assertTrue(m.matching_tid('aaa', 'aaa'))
+    self.assertTrue(m.matching_tid('axa', 'a1a'))
+    self.assertTrue(m.matching_tid('aQWEREWTWETWTWETWETEWT', 'a'))
+    self.assertTrue(not m.matching_tid('a', 'b'))
+    self.assertTrue(not m.matching_tid('aZZ', 'bZZ'))
 
 
 
-class TestMsgExchanges:
+class TestMsgExchanges(unittest.TestCase):
     
     def test_msg_exhanges(self):
         self._exchange_msgs(clients_msg_f.outgoing_ping_query(
@@ -69,7 +69,7 @@ class TestMsgExchanges:
                 tc.SERVER_NODE, tc.INFO_HASH, None),
                             servers_msg_f.outgoing_get_peers_response(
                 tc.CLIENT_NODE, tc.TOKEN, peers=tc.PEERS))
-        assert_raises(AssertionError,
+        self.assertRaises(AssertionError,
                       servers_msg_f.outgoing_get_peers_response,
                       tc.CLIENT_NODE, tc.TOKEN, None)
         self._exchange_msgs(clients_msg_f.outgoing_get_peers_query(
@@ -84,7 +84,7 @@ class TestMsgExchanges:
                 tc.SERVER_NODE, tc.INFO_HASH, None),
                           servers_msg_f.outgoing_get_peers_response(
                 tc.CLIENT_NODE, nodes=tc.NODES, peers=tc.PEERS))
-        assert_raises(AssertionError, servers_msg_f.outgoing_get_peers_response,
+        self.assertRaises(AssertionError, servers_msg_f.outgoing_get_peers_response,
                       tc.CLIENT_NODE)
 
         self._exchange_msgs(clients_msg_f.outgoing_announce_peer_query(
@@ -97,15 +97,15 @@ class TestMsgExchanges:
         data = outgoing_query.stamp(tc.TID)
         #server
         incoming_query = servers_msg_f.incoming_msg(Datagram(data, tc.CLIENT_ADDR))
-        eq_(incoming_query.type, m.QUERY)
+        self.assertEqual(incoming_query.type, m.QUERY)
         data = outgoing_response.stamp(incoming_query.tid)
         #client
         incoming_response = clients_msg_f.incoming_msg(Datagram(data, tc.SERVER_ADDR))
-        ok_(outgoing_query.match_response(incoming_response))
+        self.assertTrue(outgoing_query.match_response(incoming_response))
         assert incoming_response.type is m.RESPONSE
 
 
-class TestEvilIncomingQueries: #aka invalid bencode messages
+class TestEvilIncomingQueries(unittest.TestCase): #aka invalid bencode messages
 
     bad_non_empty_string = ['', # empty string
                                  123, # integer
@@ -141,14 +141,14 @@ class TestEvilIncomingQueries: #aka invalid bencode messages
                     'de', # empty dictionary
                     )
         for data in bencodes:
-            assert_raises(m.MsgError, servers_msg_f.incoming_msg,
+            self.assertRaises(m.MsgError, servers_msg_f.incoming_msg,
                           Datagram(data, tc.CLIENT_ADDR))
 
 
     def test_double_stamp(self):
         for msg in self._get_queries() + self._get_responses():
             msg.stamp(tc.TID)
-            assert_raises(m.MsgError, msg.stamp, tc.TID)
+            self.assertRaises(m.MsgError, msg.stamp, tc.TID)
             
     def test_bad_tids(self):
         # tid must be a non-empty string
@@ -159,7 +159,7 @@ class TestEvilIncomingQueries: #aka invalid bencode messages
                 # msg.stamp adds tid
                 # a direct stamp of the msg._dict produces bencode without tid
                 data = bencode.encode(msg._dict)
-                assert_raises(m.MsgError, servers_msg_f.incoming_msg,
+                self.assertRaises(m.MsgError, servers_msg_f.incoming_msg,
                               Datagram(data, tc.CLIENT_ADDR))
                 self._check_bad_msg(msg, tid)
 
@@ -181,33 +181,33 @@ class TestEvilIncomingQueries: #aka invalid bencode messages
              
     def _check_bad_msg(self, msg, tid=tc.TID):
         data = msg.stamp(tid)
-        assert_raises(m.MsgError, servers_msg_f.incoming_msg,
+        self.assertRaises(m.MsgError, servers_msg_f.incoming_msg,
                       Datagram(data, tc.CLIENT_ADDR))
     '''    
     def _test_ping_error(self):
         outgoing_query = m.OutgoingPingQuery(tc.CLIENT_ID)
         outgoing_query.tid = tc.TID
         # TID and ARGS ID are None
-        assert_raises(m.MsgError, outgoing_query.stamp)
+        self.assertRaises(m.MsgError, outgoing_query.stamp)
         logger.error(
             "**IGNORE 2 ERROR LOGS** This exception was raised by a test")
 
         outgoing_query = m.OutgoingPingQuery()
         outgoing_query.my_id = tc.CLIENT_ID
         #outgoing_query.tid = tc.TID
-        assert_raises(m.MsgError, outgoing_query.stamp)
+        self.assertRaises(m.MsgError, outgoing_query.stamp)
         logger.error(
             "**IGNORE 2 ERROR LOGS** This exception was raised by a test")
 
         outgoing_query = m.OutgoingPingQuery()
         #outgoing_query.my_id = tc.CLIENT_ID
         outgoing_query.tid = tc.TID
-        assert_raises(m.MsgError, outgoing_query.stamp)
+        self.assertRaises(m.MsgError, outgoing_query.stamp)
         logger.error(
             "**IGNORE 2 ERROR LOGS** This exception was raised by a test")
         
         outgoing_query = m.OutgoingPingQuery()
-        assert_raises(m.MsgError, outgoing_query.__setattr__, 'my_id', '')
+        self.assertRaises(m.MsgError, outgoing_query.__setattr__, 'my_id', '')
         logger.error(
             "**IGNORE 2 ERROR LOGS** This exception was raised by a test")
                 
@@ -215,7 +215,7 @@ class TestEvilIncomingQueries: #aka invalid bencode messages
         outgoing_query.my_id = tc.CLIENT_ID
         outgoing_query.tid = 567
         data = outgoing_query.stamp()
-        assert_raises(m.MsgError, m.decode, data)
+        self.assertRaises(m.MsgError, m.decode, data)
         logger.error(
             "**IGNORE 2 ERROR LOGS** This exception was raised by a test")
 
@@ -224,7 +224,7 @@ class TestEvilIncomingQueries: #aka invalid bencode messages
         outgoing_query.tid = tc.TID
         data = outgoing_query.stamp()
         data += 'this string ruins the bencoded msg'
-        assert_raises(m.MsgError, m.decode, data)
+        self.assertRaises(m.MsgError, m.decode, data)
         logger.error(
             "**IGNORE 2 ERROR LOGS** This exception was raised by a test")
 
@@ -233,7 +233,7 @@ class TestEvilIncomingQueries: #aka invalid bencode messages
         
         outgoing_response = m.OutgoingPingResponse(tc.TID, tc.SERVER_ID)
         outgoing_response.tid = None
-        assert_raises(m.MsgError, outgoing_response.stamp)
+        self.assertRaises(m.MsgError, outgoing_response.stamp)
         logger.error(
             "**IGNORE ERROR LOGS** This exception was raised by a test")
             '''
@@ -254,16 +254,16 @@ class TestEvilIncomingQueries: #aka invalid bencode messages
         #client
         incoming_response = servers_msg_f.incoming_msg(Datagram(data,
                                                                 tc.SERVER_ADDR))
-        eq_(incoming_response.type, m.RESPONSE)
+        self.assertEqual(incoming_response.type, m.RESPONSE)
         #incoming_response.sanitize_response(outgoing_query.query)
         for n1, n2 in zip(tc.NODES, incoming_response.all_nodes):
-            eq_(n1, n2)
+            self.assertEqual(n1, n2)
 
 
     def _test_find_node_error(self):
-        #assert_raises(m.MsgError, m.OutgoingFindNodeResponse,
+        #self.assertRaises(m.MsgError, m.OutgoingFindNodeResponse,
         #              tc.CLIENT_ID, nodes=tc.NODES)
-        assert_raises(m.MsgError, clients_msg_f.outgoing_find_node_response)
+        self.assertRaises(m.MsgError, clients_msg_f.outgoing_find_node_response)
 
         
     def test_get_peers_nodes(self):
@@ -334,7 +334,7 @@ class TestEvilIncomingQueries: #aka invalid bencode messages
             #client
             data = outgoing_query.stamp(tc.TID)
             #server (port is too low or too high)
-            assert_raises(m.MsgError, servers_msg_f.incoming_msg,
+            self.assertRaises(m.MsgError, servers_msg_f.incoming_msg,
                           Datagram(data, tc.CLIENT_ADDR))
         
     '''
@@ -349,13 +349,13 @@ class TestEvilIncomingQueries: #aka invalid bencode messages
 
 def value_is_string(msg_d, k, valid_values=None):
     v = msg_d[k]
-    ok_(isinstance(v, str))
+    self.assertTrue(isinstance(v, str))
     
         
 
-class TestIncomingMsg:
+class TestIncomingMsg(unittest.TestCase):
 
-    def setup(self):
+    def setUp(self):
         b_ping = clients_msg_f.outgoing_ping_query(tc.SERVER_NODE).stamp(tc.TID)
         self.msg_d = servers_msg_f.incoming_msg(
             Datagram(b_ping, tc.CLIENT_ADDR))._msg_dict
@@ -364,37 +364,37 @@ class TestIncomingMsg:
     def test_tid_error(self):
         # no TID
         del self.msg_d[m.TID] 
-        assert_raises(m.MsgError, servers_msg_f.incoming_msg,
+        self.assertRaises(m.MsgError, servers_msg_f.incoming_msg,
                       Datagram(bencode.encode(self.msg_d), tc.CLIENT_ADDR))
         # invalid m.TID
         self.msg_d[m.TID] = 1
-        assert_raises(m.MsgError, servers_msg_f.incoming_msg,
+        self.assertRaises(m.MsgError, servers_msg_f.incoming_msg,
                       Datagram(bencode.encode(self.msg_d), tc.CLIENT_ADDR))
         self.msg_d[m.TID] = []
-        assert_raises(m.MsgError, servers_msg_f.incoming_msg,
+        self.assertRaises(m.MsgError, servers_msg_f.incoming_msg,
                       Datagram(bencode.encode(self.msg_d), tc.CLIENT_ADDR))
         self.msg_d[m.TID] = {}
-        assert_raises(m.MsgError, servers_msg_f.incoming_msg,
+        self.assertRaises(m.MsgError, servers_msg_f.incoming_msg,
                       Datagram(bencode.encode(self.msg_d), tc.CLIENT_ADDR))
         
     def test_type_error(self):
         # no TYPE
         del self.msg_d[m.TYPE] 
-        assert_raises(m.MsgError, servers_msg_f.incoming_msg,
+        self.assertRaises(m.MsgError, servers_msg_f.incoming_msg,
                       Datagram(bencode.encode(self.msg_d), tc.CLIENT_ADDR))
         # invalid m.TYPE
         self.msg_d[m.TYPE] = 1
-        assert_raises(m.MsgError, servers_msg_f.incoming_msg,
+        self.assertRaises(m.MsgError, servers_msg_f.incoming_msg,
                       Datagram(bencode.encode(self.msg_d), tc.CLIENT_ADDR))
         self.msg_d[m.TYPE] = []
-        assert_raises(m.MsgError, servers_msg_f.incoming_msg,
+        self.assertRaises(m.MsgError, servers_msg_f.incoming_msg,
                       Datagram(bencode.encode(self.msg_d), tc.CLIENT_ADDR))
         self.msg_d[m.TYPE] = {}
-        assert_raises(m.MsgError, servers_msg_f.incoming_msg,
+        self.assertRaises(m.MsgError, servers_msg_f.incoming_msg,
                       Datagram(bencode.encode(self.msg_d), tc.CLIENT_ADDR))
         # unknown m.TYPE
         self.msg_d[m.TYPE] = 'z'
-        assert_raises(m.MsgError, servers_msg_f.incoming_msg,
+        self.assertRaises(m.MsgError, servers_msg_f.incoming_msg,
                       Datagram(bencode.encode(self.msg_d), tc.CLIENT_ADDR))
 
     def test_version_not_present(self):
@@ -409,7 +409,7 @@ class TestIncomingMsg:
         logger.info(
             "TEST LOGGING ** IGNORE EXPECTED INFO ** Unknown error: %r",
             error_code)
-        _ = servers_msg_f.incoming_msg(Datagram(b_err, tc.CLIENT_ADDR))
+        msg = servers_msg_f.incoming_msg(Datagram(b_err, tc.CLIENT_ADDR))
 
     def test_nodes2(self):
         response = clients_msg_f.outgoing_get_peers_response(tc.SERVER_NODE,
@@ -430,9 +430,9 @@ b_ap_q = clients_msg_f.outgoing_announce_peer_query(tc.SERVER_NODE,
                                                     tc.BT_PORT,
                                                     tc.TOKEN).stamp(tc.TID)
 
-class TestSanitizeQueryError:
+class TestSanitizeQueryError(unittest.TestCase):
 
-    def setup(self):
+    def setUp(self):
         self.ping_d = servers_msg_f.incoming_msg(
             Datagram(b_ping_q, tc.CLIENT_ADDR))._msg_dict
         self.fn_d = servers_msg_f.incoming_msg(
@@ -444,13 +444,13 @@ class TestSanitizeQueryError:
 
     def test_weird_msg(self):
         self.ping_d[m.ARGS] = []
-        assert_raises(m.MsgError, servers_msg_f.incoming_msg,
+        self.assertRaises(m.MsgError, servers_msg_f.incoming_msg,
                       Datagram(bencode.encode(self.ping_d), tc.CLIENT_ADDR))
         self.ping_d[m.ARGS] = 1
-        assert_raises(m.MsgError, servers_msg_f.incoming_msg,
+        self.assertRaises(m.MsgError, servers_msg_f.incoming_msg,
                       Datagram(bencode.encode(self.ping_d), tc.CLIENT_ADDR))
         self.ping_d[m.ARGS] = 'ZZZZ'
-        assert_raises(m.MsgError, servers_msg_f.incoming_msg,
+        self.assertRaises(m.MsgError, servers_msg_f.incoming_msg,
                       Datagram(bencode.encode(self.ping_d), tc.CLIENT_ADDR))
         
         
@@ -458,36 +458,36 @@ class TestSanitizeQueryError:
     def test_sender_id(self):
         # no sender_id
         del self.ping_d[m.ARGS][m.ID]
-        assert_raises(m.MsgError, servers_msg_f.incoming_msg,
+        self.assertRaises(m.MsgError, servers_msg_f.incoming_msg,
                       Datagram(bencode.encode(self.ping_d), tc.CLIENT_ADDR))
         # bad ID
         self.ping_d[m.ARGS][m.ID] = 'a'
-        assert_raises(m.MsgError, servers_msg_f.incoming_msg,
+        self.assertRaises(m.MsgError, servers_msg_f.incoming_msg,
                       Datagram(bencode.encode(self.ping_d), tc.CLIENT_ADDR))
         self.ping_d[m.ARGS][m.ID] = 1
-        assert_raises(m.MsgError, servers_msg_f.incoming_msg,
+        self.assertRaises(m.MsgError, servers_msg_f.incoming_msg,
                       Datagram(bencode.encode(self.ping_d), tc.CLIENT_ADDR))
         self.ping_d[m.ARGS][m.ID] = []
-        assert_raises(m.MsgError, servers_msg_f.incoming_msg,
+        self.assertRaises(m.MsgError, servers_msg_f.incoming_msg,
                       Datagram(bencode.encode(self.ping_d), tc.CLIENT_ADDR))
         self.ping_d[m.ARGS][m.ID] = {}
-        assert_raises(m.MsgError, servers_msg_f.incoming_msg,
+        self.assertRaises(m.MsgError, servers_msg_f.incoming_msg,
                       Datagram(bencode.encode(self.ping_d), tc.CLIENT_ADDR))
 
     def test_query(self): 
         # no m.QUERY
         del self.ping_d[m.QUERY]
-        assert_raises(m.MsgError, servers_msg_f.incoming_msg,
+        self.assertRaises(m.MsgError, servers_msg_f.incoming_msg,
                       Datagram(bencode.encode(self.ping_d), tc.CLIENT_ADDR))
         # bad m.QUERY
         self.ping_d[m.QUERY] = 1
-        assert_raises(m.MsgError, servers_msg_f.incoming_msg,
+        self.assertRaises(m.MsgError, servers_msg_f.incoming_msg,
                       Datagram(bencode.encode(self.ping_d), tc.CLIENT_ADDR))
         self.ping_d[m.QUERY] = []
-        assert_raises(m.MsgError, servers_msg_f.incoming_msg,
+        self.assertRaises(m.MsgError, servers_msg_f.incoming_msg,
                       Datagram(bencode.encode(self.ping_d), tc.CLIENT_ADDR))
         self.ping_d[m.QUERY] = {}
-        assert_raises(m.MsgError, servers_msg_f.incoming_msg,
+        self.assertRaises(m.MsgError, servers_msg_f.incoming_msg,
                       Datagram(bencode.encode(self.ping_d), tc.CLIENT_ADDR))
         # unknown m.QUERY is not an error at this point
         # responder will process it and send an errror msg if necesary
@@ -497,7 +497,7 @@ class TestSanitizeQueryError:
     def test_announce(self):
         # Port must be integer
         self.ap_d[m.ARGS][m.PORT] = 'a'
-        assert_raises(m.MsgError, servers_msg_f.incoming_msg,
+        self.assertRaises(m.MsgError, servers_msg_f.incoming_msg,
                       Datagram(bencode.encode(self.ap_d), tc.CLIENT_ADDR))
 
         
@@ -510,9 +510,9 @@ b_gp_r = clients_msg_f.outgoing_get_peers_response(tc.SERVER_NODE,
                                                    peers=tc.PEERS).stamp(tc.TID)
 b_ap_r = clients_msg_f.outgoing_announce_peer_response(tc.SERVER_NODE).stamp(tc.TID)
 
-class TestSanitizeResponseError:
+class TestSanitizeResponseError(unittest.TestCase):
 
-    def setup(self):
+    def setUp(self):
         self.ping_r = servers_msg_f.incoming_msg(Datagram(b_ping_r, tc.SERVER_ADDR))
         self.fn2_r = servers_msg_f.incoming_msg(Datagram(b_fn2_r, tc.SERVER_ADDR))
         self.gp_r = servers_msg_f.incoming_msg(Datagram(b_gp_r, tc.SERVER_ADDR))
@@ -523,7 +523,7 @@ class TestSanitizeResponseError:
 
         del self.fn2_r._msg_dict[m.RESPONSE][m.NODES2]
         # No NODES and no NODES2
-        assert_raises(m.MsgError, self.fn2_r.sanitize_response, m.FIND_NODE)
+        self.assertRaises(m.MsgError, self.fn2_r.sanitize_response, m.FIND_NODE)
         self.fn2_r._msg_dict[m.RESPONSE][m.NODES] = \
             mt.compact_nodes(tc.NODES)
         # Just NODES
@@ -540,25 +540,25 @@ class TestSanitizeResponseError:
         # No NODES and no PEERS
         del self.gp_r._msg_dict[m.RESPONSE][m.NODES]
         del self.gp_r._msg_dict[m.RESPONSE][m.VALUES]
-        assert_raises(m.MsgError, self.gp_r.sanitize_response, m.GET_PEERS)
+        self.assertRaises(m.MsgError, self.gp_r.sanitize_response, m.GET_PEERS)
 '''        
         
-class TestSanitizeErrorError:
+class TestSanitizeErrorError(unittest.TestCase):
 
     def test(self):
         msg_out = clients_msg_f.outgoing_error(tc.SERVER_NODE,
                                                1).stamp(tc.TID)
-        assert_raises(m.MsgError, servers_msg_f.incoming_msg,
+        self.assertRaises(m.MsgError, servers_msg_f.incoming_msg,
                       Datagram(msg_out, tc.CLIENT_ADDR))
         # Unknown error doesn't raise m.MsgError
         msg_out = clients_msg_f.outgoing_error(tc.SERVER_NODE,
                                                (1,1)).stamp(tc.TID)
-        _ = servers_msg_f.incoming_msg(Datagram(msg_out, tc.SERVER_ADDR))
+        msg = servers_msg_f.incoming_msg(Datagram(msg_out, tc.SERVER_ADDR))
     
 
 
         
-class TestPrinting:
+class TestPrinting(unittest.TestCase):
     
     def test_printing(self):
         out_msg = clients_msg_f.outgoing_ping_query(tc.SERVER_NODE)
@@ -569,7 +569,7 @@ class TestPrinting:
         repr(in_msg)
 
                   
-class TestPrivateDHT:
+class TestPrivateDHT(unittest.TestCase):
 
     def test(self):
         private_client1 = m.MsgFactory(VERSION_LABEL, tc.CLIENT_ID, 'private1')
@@ -594,9 +594,12 @@ class TestPrivateDHT:
 
         # Receiver in the private DHT accepts ONLY messages from the
         # private DHT it belongs to
-        assert_raises(m.MsgError, private_server1.incoming_msg,
+        self.assertRaises(m.MsgError, private_server1.incoming_msg,
                       Datagram(bencoded_public, tc.CLIENT_ADDR))
         private_server1.incoming_msg(Datagram(bencoded_private1, tc.CLIENT_ADDR))
-        assert_raises(m.MsgError, private_server1.incoming_msg,
+        self.assertRaises(m.MsgError, private_server1.incoming_msg,
                       Datagram(bencoded_private2, tc.CLIENT_ADDR))
 
+
+if __name__ == '__main__':
+    unittest.main()
